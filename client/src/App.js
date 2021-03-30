@@ -10,13 +10,13 @@ function App() {
   const [studentList, setStudentList] = useState([]);
 
   useEffect(() => {
-    Axios.get("http://localhost:3001/list").then((res) => {
+    Axios.get("/list").then((res) => {
       setStudentList(res.data);
     });
   }, []);
 
   const submitReview = () => {
-    Axios.post("http://localhost:3001/add", {
+    Axios.post("/add", {
       firstName: firstName,
       lastName: lastName,
       year: year,
@@ -36,7 +36,7 @@ function App() {
   };
 
   const deleteReview = (id) => {
-    Axios.post("http://localhost:3001/delete", {
+    Axios.post("/delete", {
       id,
     });
     setStudentList(studentList.filter((student) => student.id !== id));
@@ -44,15 +44,13 @@ function App() {
 
   const updateReview = (v) => {
     v.edit = true;
-    console.log(v);
     setStudentList([...studentList]);
   };
 
   const uploadChange = (v) => {
     v.edit = false;
     setStudentList([...studentList]);
-    console.log(v);
-    Axios.post("http://localhost:3001/update", {
+    Axios.post("/update", {
       firstName: v.firstName,
       lastName: v.lastName,
       year: v.year,
@@ -63,26 +61,26 @@ function App() {
 
   return (
     <div className="App">
-      <h1> Students </h1>{" "}
+      <h1> Students </h1>
       <div className="wrapper">
         <div className="form">
-          <label> First Name: </label>{" "}
+          <label> First Name: </label>
           <input
             id="firstNameInput"
             type="text"
             onChange={(e) => {
               setFirstName(e.target.value);
             }}
-          ></input>{" "}
-          <label> Last name: </label>{" "}
+          ></input>
+          <label> Last name: </label>
           <input
             id="lastNameInput"
             type="text"
             onChange={(e) => {
               setLastName(e.target.value);
             }}
-          ></input>{" "}
-          <label> Year: </label>{" "}
+          ></input>
+          <label> Year: </label>
           <input
             id="yearInput"
             type="text"
@@ -90,8 +88,8 @@ function App() {
             onChange={(e) => {
               setYear(e.target.value);
             }}
-          ></input>{" "}
-          <label> Class: </label>{" "}
+          ></input>
+          <label> Class: </label>
           <input
             id="classInput"
             type="text"
@@ -99,21 +97,21 @@ function App() {
             onChange={(e) => {
               setClass(e.target.value);
             }}
-          ></input>{" "}
-          <button onClick={submitReview}> Submit </button>{" "}
-        </div>{" "}
-        {/*--------------------------------------------------------------------*/}{" "}
+          ></input>
+          <button onClick={submitReview}> Submit </button>
+        </div>
+        {/*--------------------------------------------------------------------*/}
         {studentList.map((v) => {
           return (
             <div className="card">
-              {" "}
+              
               {!v.edit ? (
                 <>
-                  <p> First name: {v.firstName} </p>{" "}
-                  <p> Last name: {v.lastName} </p> <p> Year: {v.year} </p>{" "}
-                  <p> Class: {v.class} </p>{" "}
-                  <button onClick={() => deleteReview(v.id)}> Delete </button>{" "}
-                  <button onClick={() => updateReview(v)}> Update </button>{" "}
+                  <p> First name: {v.firstName} </p>
+                  <p> Last name: {v.lastName} </p> <p> Year: {v.year} </p>
+                  <p> Class: {v.class} </p>
+                  <button onClick={() => deleteReview(v.id)}> Delete </button>
+                  <button onClick={() => updateReview(v)}> Update </button>
                 </>
               ) : (
                 <>
@@ -125,8 +123,8 @@ function App() {
                       onChange={(e) => {
                         v.firstName = e.target.value;
                       }}
-                    ></input>{" "}
-                  </p>{" "}
+                    ></input>
+                  </p>
                   <p>
                     Last name:
                     <input
@@ -135,8 +133,8 @@ function App() {
                       onChange={(e) => {
                         v.lastName = e.target.value;
                       }}
-                    ></input>{" "}
-                  </p>{" "}
+                    ></input>
+                  </p>
                   <p>
                     Year:
                     <input
@@ -145,8 +143,8 @@ function App() {
                       onChange={(e) => {
                         v.year = e.target.value;
                       }}
-                    ></input>{" "}
-                  </p>{" "}
+                    ></input>
+                  </p>
                   <p>
                     Class:
                     <input
@@ -155,16 +153,16 @@ function App() {
                       onChange={(e) => {
                         v.class = e.target.value;
                       }}
-                    ></input>{" "}
-                  </p>{" "}
-                  <button onClick={() => uploadChange(v)}> Submit </button>{" "}
+                    ></input>
+                  </p>
+                  <button onClick={() => uploadChange(v)}> Submit </button>
                 </>
-              )}{" "}
+              )}
             </div>
           );
-        })}{" "}
-        {/*--------------------------------------------------------------------*/}{" "}
-      </div>{" "}
+        })}
+        {/*--------------------------------------------------------------------*/}
+      </div>
     </div>
   );
 }

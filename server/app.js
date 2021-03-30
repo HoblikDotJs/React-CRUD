@@ -1,17 +1,21 @@
 const express = require('express'),
     bodyParser = require('body-parser'),
     fs = require('fs'),
-    uniqid = require('uniqid');
-cors = require('cors');
+    uniqid = require('uniqid'),
+    cors = require('cors'),
+    path = require('path');
 
 const app = express();
 app.use(bodyParser.json());
-app.use(cors())
+app.use(cors()) // not needed now
+app.use(express.static(path.join(__dirname, 'build')))
 app.use(express.json())
 const MSGPATH = "messages.json";
 let msgArr = []
-const port = process.env.PORT || 3001
-app.listen(port);
+const port = process.env.PORT || 8080
+app.listen(port, () => {
+    console.log("listening on " + port)
+});
 
 if (fs.existsSync(MSGPATH)) {
     msgArr = JSON.parse(fs.readFileSync(MSGPATH));
@@ -28,6 +32,9 @@ function validateEntry(entry) {
     return false
 }
 
+app.get('/', (res, req) => {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'))
+})
 
 // CREATE
 app.post('/add', (req, res) => {
