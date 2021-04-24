@@ -3,46 +3,48 @@ import React, { useState, useEffect } from "react";
 import Axios from "axios";
 
 function App() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [year, setYear] = useState("");
-  const [class_, setClass] = useState("");
+  const [student, setStudent] = useState({
+    firstName: "",
+    lastName: "",
+    year: "",
+    class: "",
+    id: "",
+  });
   const [studentList, setStudentList] = useState([]);
 
   useEffect(() => {
-    Axios.get("/list").then((res) => {
-      setStudentList(res.data);
+    //cannot use async in useEffect?
+    Axios.get("http://localhost:8080/list").then(({ data }) => {
+      setStudentList(data);
     });
   }, []);
 
-  const submitReview = () => {
-    Axios.post("/add", {
-      firstName: firstName,
-      lastName: lastName,
-      year: year,
-      class: class_,
-    }).then((r) => {
-      setStudentList([
-        ...studentList,
-        {
-          firstName: firstName,
-          lastName: lastName,
-          year: year,
-          class: class_,
-          id: r.data,
-        },
-      ]);
+  const submitStudent = async () => {
+    const { firstName, lastName, year } = student;
+    const { data } = await Axios.post("http://localhost:8080/add", {
+      firstName,
+      lastName,
+      year,
+      class: student.class,
     });
+    setStudentList([
+      ...studentList,
+      {
+        ...student,
+        id: data,
+      },
+    ]);
   };
 
-  const deleteReview = (id) => {
-    Axios.post("/delete", {
+  const deleteStudent = (id) => {
+    Axios.post("http://localhost:8080/delete", {
       id,
     });
     setStudentList(studentList.filter((student) => student.id !== id));
   };
 
-  const updateReview = (v) => {
+  const updateStudent = (v) => {
+    // UI
     v.edit = true;
     setStudentList([...studentList]);
   };
@@ -50,13 +52,18 @@ function App() {
   const uploadChange = (v) => {
     v.edit = false;
     setStudentList([...studentList]);
-    Axios.post("/update", {
-      firstName: v.firstName,
-      lastName: v.lastName,
-      year: v.year,
-      class: v.class,
-      id: v.id,
+    const { firstName, lastName, year, id } = v;
+    Axios.post("http://localhost:8080/update", {
+      firstName: firstName,
+      lastName: lastName,
+      year: year,
+      class: v.class, // cannot destructure object because of "class"
+      id: id,
     });
+  };
+
+  const manageInputs = ({ name, value }) => {
+    setStudent({ ...student, [name]: value });
   };
 
   return (
@@ -66,52 +73,49 @@ function App() {
         <div className="form">
           <label> First Name: </label>
           <input
-            id="firstNameInput"
             type="text"
-            onChange={(e) => {
-              setFirstName(e.target.value);
+            name="firstName"
+            onChange={({ target }) => {
+              manageInputs(target);
             }}
           ></input>
           <label> Last name: </label>
           <input
-            id="lastNameInput"
             type="text"
-            onChange={(e) => {
-              setLastName(e.target.value);
+            name="lastName"
+            onChange={({ target }) => {
+              manageInputs(target);
             }}
           ></input>
           <label> Year: </label>
           <input
-            id="yearInput"
             type="text"
-            name="review"
-            onChange={(e) => {
-              setYear(e.target.value);
+            name="year"
+            onChange={({ target }) => {
+              manageInputs(target);
             }}
           ></input>
           <label> Class: </label>
           <input
-            id="classInput"
             type="text"
-            name="review"
-            onChange={(e) => {
-              setClass(e.target.value);
+            name="class"
+            onChange={({ target }) => {
+              manageInputs(target);
             }}
           ></input>
-          <button onClick={submitReview}> Submit </button>
+          <button onClick={submitStudent}> Submit </button>
         </div>
-        {/*--------------------------------------------------------------------*/}
+        {/*-------------------- Student list --------------------*/}
         {studentList.map((v) => {
           return (
-            <div className="card">
-              
+            <div key={v.id} className="card">
               {!v.edit ? (
                 <>
                   <p> First name: {v.firstName} </p>
                   <p> Last name: {v.lastName} </p> <p> Year: {v.year} </p>
                   <p> Class: {v.class} </p>
-                  <button onClick={() => deleteReview(v.id)}> Delete </button>
-                  <button onClick={() => updateReview(v)}> Update </button>
+                  <button onClick={() => deleteStudent(v.id)}> Delete </button>
+                  <button onClick={() => updateStudent(v)}> Update </button>
                 </>
               ) : (
                 <>

@@ -1,29 +1,55 @@
 const express = require('express'),
     bodyParser = require('body-parser'),
-    fs = require('fs'),
-    uniqid = require('uniqid'),
     cors = require('cors'),
-    path = require('path');
+    path = require('path'),
+    mysql = require('mysql')
+
+require('dotenv').config();
+let connection;
+checkDatabaseConnection();
+setInterval(checkDatabaseConnection, 10000);
+
+
+
+function checkDatabaseConnection() {
+    if (connection && connection.state == 'authenticated') return;
+    connection = mysql.createConnection({
+        host: process.env.HOST,
+        port: process.env.DPORT,
+        user: process.env.USER,
+        password: process.env.PASSWORD,
+        database: process.env.DATABASE
+    })
+    connection.connect(err => {
+        if (err) {
+            console.log('error when connecting to MySQL db:', err);
+            console.log('reconnecting...');
+            setTimeout(checkDatabaseConnection, 2000);
+        } else {
+            console.log("Connected!");
+        }
+    });
+    connection.on('error', err => {
+        console.log('MySQL db error', err);
+        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+            console.log('reconnecting...');
+            checkDatabaseConnection();
+        } else {
+            throw err;
+        }
+    });
+
+}
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors()) // not needed now
 app.use(express.static(path.join(__dirname, 'build')))
 app.use(express.json())
-const MSGPATH = "messages.json";
-let msgArr = []
 const port = process.env.PORT || 8080
 app.listen(port, () => {
     console.log("listening on " + port)
 });
-
-if (fs.existsSync(MSGPATH)) {
-    msgArr = JSON.parse(fs.readFileSync(MSGPATH));
-}
-
-function saveMsgs() {
-    fs.writeFileSync(MSGPATH, JSON.stringify(msgArr, null, 2));
-}
 
 function validateEntry(entry) {
     if ("firstName" in entry && "lastName" in entry && "year" in entry && "class" in entry) {
@@ -39,30 +65,24 @@ app.get('/', (res, req) => {
 // CREATE
 app.post('/add', (req, res) => {
     if (validateEntry(req.body) && Object.keys(req.body).length == 4) {
-        let id = uniqid()
-        let obj = {
-            id: id,
-            ...req.body // is year a number? names without spaces? class A or B? 
-        };
-        msgArr.push(obj);
-        saveMsgs();
-        res.status(201).send(id);
+        connection.query(`INSERT INTO students (firstName,lastName,year,class) VALUES
+         ('${req.body.firstName}','${req.body.lastName}','${req.body.year}','${req.body.class}')`,
+            (err, result) => {
+                if (err) throw err;
+                res.status(201).send(result.insertId.toString());
+            });
     } else {
         res.status(400).send('(firstName, lastName, year, class)')
     }
 });
 
 //READ
-app.post('/read', (req, res) => {
+app.post('/read', (req, res) => { // not used
     if ("id" in req.body) {
-        let id = req.body.id;
-        for (let item of msgArr) {
-            if (item.id == id) {
-                res.send(item)
-                return
-            }
-        }
-        res.status(400).send('Id not found')
+        connection.query(`SELECT * FROM students WHERE id = '${req.body.id}'`, (err, result) => {
+            if (err) throw err;
+            res.status(200).send(JSON.stringify(result))
+        })
     } else {
         res.status(400).send('(id)')
     }
@@ -71,21 +91,13 @@ app.post('/read', (req, res) => {
 //UPDATE
 app.post('/update', (req, res) => {
     if (validateEntry(req.body) && "id" in req.body && Object.keys(req.body).length == 5) {
-        for (let i = msgArr.length - 1; i >= 0; i--) {
-            if (msgArr[i].id == req.body.id) {
-                msgArr.splice(i, 1);
-                let obj = {
-                    id: req.body.id,
-                    ...req.body
-                };
-                msgArr.push(obj);
-                saveMsgs();
-                res.status(202).end()
-                return
-            }
-        }
-        res.status(400).send('Id not found')
-        return
+        connection.query(`UPDATE students SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}',
+        year = '${req.body.year}', class = '${req.body.class}' 
+        WHERE id = '${req.body.id}'`, (err, result) => {
+            if (err) throw err;
+            res.status(202).end()
+            return
+        });
     } else {
         res.status(400).send('(firstName, lastName, year, class, id)')
         return
@@ -95,16 +107,10 @@ app.post('/update', (req, res) => {
 //DELETE
 app.post('/delete', (req, res) => {
     if ("id" in req.body) {
-        for (let i = msgArr.length - 1; i >= 0; i--) { // (Doesnt need to be backwards bcs we re deliting one item)
-            if (msgArr[i].id == req.body.id) {
-                msgArr.splice(i, 1);
-                saveMsgs();
-                res.status(202).end()
-                return
-            }
-        }
-        res.status(400).send('Id not found')
-        return
+        connection.query(`DELETE FROM students WHERE id = '${req.body.id}'`, (err, result) => {
+            if (err) throw err;
+            res.status(202).end()
+        });
     } else {
         res.status(400).send('(id)')
         return
@@ -113,5 +119,8 @@ app.post('/delete', (req, res) => {
 
 //LIST
 app.get('/list', (req, res) => {
-    res.status(200).send(JSON.stringify(msgArr))
+    connection.query("SELECT * FROM students ORDER BY id", (err, result) => {
+        if (err) throw err;
+        res.status(200).send(JSON.stringify(result))
+    });
 });
